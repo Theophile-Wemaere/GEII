@@ -285,4 +285,5 @@ def debug(index, arg=None):
         elif index=="placemark_color":
             print("[nmea2kml] Creating mono-colored path with color",arg)
 
-
+        elif index=="KeyboardInterrupt":
+            print("[nmea2kml] Keyboard interrupt detected, aborting")

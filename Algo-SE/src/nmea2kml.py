@@ -239,5 +239,8 @@ def main():
     func.debug("end")
             
 if __name__ == "__main__":
-    init()
-    main()
+    try:    
+        init()
+        main()
+    except KeyboardInterrupt:
+        func.debug("KeyboardInterrupt")

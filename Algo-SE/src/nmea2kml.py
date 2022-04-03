@@ -35,7 +35,7 @@ OVERWRITE = False     #set to 'True' if you want to overwrite the output file. '
 INPUT_FILE = "/tmp/data.txt"     #set the input file to convert (no necessary if using the GUI), set the FULL path (ex : /home/user/data.txt or C:\\Users\\data.txt)
 OUTPUT = "output.kml"            #default output file name, can be found in the output/ directory 
 MODE = "colored"                 #choose if the path is colored (speed indication) with "colored" or if the path is only one color "one color"
-COLOR = "ff0000ff"               #ABGR hex code for 'one color' mode ex : red = ff0000ff
+COLOR = "ff00ffff"               #ABGR hex code for 'one color' mode ex : red = ff0000ff
 NAME = "My path"                 #the name of the path in the kml file
 
 

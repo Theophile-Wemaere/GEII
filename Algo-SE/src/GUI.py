@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-from socket import VMADDR_CID_ANY
 import tkinter as tk
 import tkinter.font as tkFont
 from tkinter.filedialog import askopenfilename

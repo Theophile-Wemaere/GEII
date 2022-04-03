@@ -27,7 +27,7 @@ I was bored so there is also a *beautiful* interface with tkinter to select your
 
 simply launch the main script with `python3 src/nmea2kml.py`
 
-You'll need the following pip packages to use it :
+You'll need the following pip packages to use fully it :
 ```
 tkinter
 os
@@ -37,7 +37,7 @@ numpy
 re
 ```
 
-You can manage each options with the globals variables in src/nmea2kml.py:
+You can manage each options with the globals variables in `src/nmea2kml.py`:
 ```py
 USE_GUI = True
 DEBUG_MESSAGE = True

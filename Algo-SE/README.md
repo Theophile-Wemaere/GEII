@@ -27,7 +27,7 @@ I was bored so there is also a *beautiful* interface with tkinter to select your
 
 simply launch the main script with `python3 src/nmea2kml.py`
 
-You'll need the following pip packages to use fully it :
+You'll need the following pip packages to fully use it :
 ```
 tkinter
 os

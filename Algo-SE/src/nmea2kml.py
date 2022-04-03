@@ -29,8 +29,8 @@ from os.path import exists
 import sys
 
 USE_GUI = True        #if you want to use the GUI, set to 'True', if you don't want, set to 'False' 
-DEBUG_MESSAGE = True   #if you want to see debugs meesage, set to 'True', if you don't want, set to 'False'
-OVERWRITE = True       #set to 'True' if you want to overwrite the output file. 'False' will trigger a warning when creating the output file and allow to choose antoher name
+DEBUG_MESSAGE = True  #if you want to see debugs meesage, set to 'True', if you don't want, set to 'False'
+OVERWRITE = False     #set to 'True' if you want to overwrite the output file. 'False' will trigger a warning when creating the output file and allow to choose antoher name
 
 INPUT_FILE = "/tmp/data.txt"     #set the input file to convert (no necessary if using the GUI), set the FULL path (ex : /home/user/data.txt or C:\\Users\\data.txt)
 OUTPUT = "output.kml"            #default output file name, can be found in the output/ directory 
@@ -55,8 +55,10 @@ def init():
         while not choosing:
             
             if len(app.color_entry.get())==6:
-                app.button_color["bg"] = "#" + app.color_entry.get()
-
+                try:
+                    app.button_color["bg"] = "#" + app.color_entry.get()
+                except:
+                    pass
 
             #print(app.var_end.get())
             app.page.update()

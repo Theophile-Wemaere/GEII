@@ -17,7 +17,7 @@ Generate a	.kml file, to display the route, with or without speed coloration on 
 Also have altitudes informations, so you can display it in google earth:
 
 ##### google earth 3D view:
-![GoogleEarth](;/data/img2.png)
+![GoogleEarth](/data/img2.png)
 
 I was bored so there is also a *beautiful* interface to select your file and other options :
 

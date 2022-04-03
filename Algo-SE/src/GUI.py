@@ -4,8 +4,6 @@ import tkinter.font as tkFont
 from tkinter.filedialog import askopenfilename
 from os.path import exists
 
-SHOW_ENTRY = False
-
 class nmea_gui:
 
     def __init__(self, root):

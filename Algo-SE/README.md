@@ -46,7 +46,7 @@ OVERWRITE = True
 INPUT_FILE="/tmp/data.txt"
 OUTPUT="output.kml"
 MODE="colored"
-COLOR="ff0000ff
+COLOR="ff0000ff"
 NAME="My path"
 ```
 

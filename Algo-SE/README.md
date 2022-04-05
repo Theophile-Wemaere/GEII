@@ -42,11 +42,11 @@ You can manage each options with the globals variables in `src/nmea2kml.py`:
 USE_GUI = True
 DEBUG_MESSAGE = True
 OVERWRITE = True
-
-INPUT_FILE="/tmp/data.txt"
-OUTPUT="output.kml"
-MODE="colored"
-COLOR="ff0000ff"
+                              _
+INPUT_FILE="/tmp/data.txt"     |    
+OUTPUT="output.kml"            | - no necessary if using the GUI
+MODE="colored"                 |
+COLOR="ff0000ff"              _|
 NAME="My path"
 ```
 

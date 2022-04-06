@@ -191,7 +191,7 @@ def getCoordinates(line):
         return coordinates
         
 
-def verifString(string):
+def verifString(string):            #not very usefull cause tkinter return a Windows path with / instead of \
     """
     verify if the input file path doesn't have bad char 
     """

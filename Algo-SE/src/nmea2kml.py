@@ -41,8 +41,8 @@ INPUT_FILE = "/tmp/data.txt"     #set the input file to convert (no necessary if
 OUTPUT = "output.kml"            #default output file name, can be found in the output/ directory 
 MODE = "colored"                 #choose if the path is colored (speed indication) with "colored" or if the path is only one color "one color"
 COLOR = "ff00ffff"               #ABGR hex code for 'one color' mode ex : red = ff0000ff
-NAME = "My path"                 #the name of the path in the kml file
 FORMAT = "GGA"                   #the frames format to convert. Choose 'GGA' for GGA+VTG frames and 'APP' for the GPS logger app format
+NAME = "My path"                 #the name of the path in the kml file
 
 
 def init():

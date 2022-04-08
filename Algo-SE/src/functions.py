@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+#the code with all the functions needed to perform the conversion from nmea format to kml format
+
 import colorsys
 import nmea2kml as main
 import re
@@ -8,6 +10,7 @@ import numpy as np
 NUM_LINE = 0
 MAX="100"    #max speed for color conversion, default 100Km/h
 OUTPUT = "output.kml"
+FORMAT = ""
 
 def placemark(index,NAME=None):
     """
@@ -27,7 +30,7 @@ def placemark(index,NAME=None):
     }
     return placemark[index]
 
-def getMaxSpeed(path):
+def getMaxSpeed(path,FORMAT):
     """
     this function parse the entire input file to get the greater speed
     so the coloration is better 
@@ -38,10 +41,17 @@ def getMaxSpeed(path):
 
     with open(path,'r') as file:
 
-        for line in file:
-            if line[:6]=="$GPVTG":
-                nl=line.split(',')
-                list.append(float(nl[7]))
+        if FORMAT == "GGA":
+            for line in file:
+                if line[:6]=="$GPVTG":
+                    nl=line.split(',')
+                    list.append(float(nl[7]))
+
+        elif FORMAT == "APP":
+            for line in file:
+                nl = line.split(',')
+                speed = float(nl[7]) * 3.6 #m/s to km/h
+                list.append(speed)
 
     MAX = np.max(list)
 
@@ -109,16 +119,20 @@ def endPlacemark(placemark,file):
     except:
         return -1
 
-def getSpeed(line):
+def getSpeed(line,FORMAT):
     """
     this function parse a VTG frame to get the speed in Km/h
     it check if the frame isn't corrupted with the chksum function (checksum verification) and then return the speed value
     """
     nl=line.split(',')
-    if chksum(line):
-        return float(nl[7])
-    else:
-        return -1
+    if FORMAT == "GGA":
+        if chksum(line):
+            return float(nl[7])
+        else:
+            return -1
+    elif FORMAT == "APP":
+        speed = float(nl[7]) * 3.6 #m/s to km/h
+        return speed
 
 def Speed2Color(speed):
     """
@@ -146,21 +160,22 @@ def HSV2HEX(Hue,Sat=100,Value=100):  # (°, %, %)
     hexRGB="ff{:02x}{:02x}{:02x}".format(blue,green,red)        #https://stackoverflow.com/questions/3380726/converting-a-rgb-color-tuple-to-a-six-digit-code
     return hexRGB
 
-def new_color_placemark(data,speed,previousCoordinates):
+def new_color_placemark(data,speed,previousCoordinates,FORMAT):
     """
     this function is like a "main" function : it create a placemark, get the right color from the speed  
     """
+
     newHue=Speed2Color(speed)                                  #get the HSV color from the speed
     newColor=HSV2HEX(newHue)                                   #get the hexcadecimal ABGR color from the HSV color
     placemark=createPlacemark(newColor,previousCoordinates)    #create a placemark with the right color and the last coordinates of the last placemark
-    coordinates=getCoordinates(data)                           #get the coordinates from the raw GGA frames
+    coordinates=getCoordinates(data,FORMAT)                           #get the coordinates from the raw GGA frames
     if coordinates != -1 and coordinates != -2:     #log the first coordinates  (after the last coordinates of the last placemark)
         placemark+=coordinates
         return coordinates,placemark                #return the coordinates for the previousCoordinates var and placemark
     else:
         pass
 
-def getCoordinates(line):
+def getCoordinates(line,FORMAT):
     """
     Parsing function, take for argument a GGA frame
     and return a tuple with(latitude,longitude,altitude)
@@ -169,29 +184,40 @@ def getCoordinates(line):
     """
     
     nl=line.split(',')              #parse the line to get a list of the differents data
-    lat,long,alt=nl[2],nl[4],nl[9]  #get the value of latitude, longitude and altitude
-    if alt=="00":                   #if the altitude is equal to '00', the frame is bad
-        debug("error_alt")
-        return -1  
-    elif not chksum(line):          #if the checksum is bad, the frame is corrupted
-        debug("bad_chksum_coordinates")
-        return -2
-    else:                                                               
-        lat = float(lat[:2]) + (float(lat[2:])/60)                  #get the real latitude value (ex: nl[2] = 4306.9122 is 43° and 06.9122 minutes = 43.11520° equal to 43+(06.9122/60))
-        long = float(long[:3]) + (float(long[3:])/60)               #get the real longitude value (almost the same calcul)
 
-        if nl[3]=='S' :      #if the latitude is south oriented, lat is negative
-            lat = -lat              
-        if nl[5]=='W' :      #if the longitude is west oriented, long is negative
-            long = -long
+    if FORMAT == "GGA":
+        lat,long,alt=nl[2],nl[4],nl[9]  #get the value of latitude, longitude and altitude
+        if alt=="00":                   #if the altitude is equal to '00', the frame is bad
+            debug("error_alt")
+            return -1  
+        elif not chksum(line):          #if the checksum is bad, the frame is corrupted
+            debug("bad_chksum_coordinates")
+            return -2
+        else:                                                               
+            lat = float(lat[:2]) + (float(lat[2:])/60)                  #get the real latitude value (ex: nl[2] = 4306.9122 is 43° and 06.9122 minutes = 43.11520° equal to 43+(06.9122/60))
+            long = float(long[:3]) + (float(long[3:])/60)               #get the real longitude value (almost the same calcul)
 
-        alt = float(alt) + 10  #adding 10 to the altitude to avoid dead zone on google earth view
+            if nl[3]=='S' :      #if the latitude is south oriented, lat is negative
+                lat = -lat              
+            if nl[5]=='W' :      #if the longitude is west oriented, long is negative
+                long = -long
 
-        coordinates="                       {},{},{} \n".format(str(long),str(lat),str(alt))  #create the line with the right format to lin a kml file
-        return coordinates
-        
+            alt = float(alt) + 10  #adding 10 to the altitude to avoid dead zone on google earth view
 
-def verifString(string):            #not very usefull cause tkinter return a Windows path with / instead of \
+            coordinates="                       {},{},{} \n".format(str(long),str(lat),str(alt))  #create the line with the right format to lin a kml file
+            return coordinates
+    
+    elif FORMAT == "APP":
+        lat,long,alt = nl[2],nl[3],nl[5]
+        if alt=="0":
+            debug("error_alt")
+            return -1
+        else:
+            alt = float(alt) + 10  #adding 10 to the altitude to avoid dead zone on google earth view
+            coordinates="                       {},{},{} \n".format(str(long),str(lat),str(alt))  #create the line with the right format to lin a kml file
+            return coordinates
+
+def verifString(string):
     """
     verify if the input file path doesn't have bad char 
     """
@@ -211,7 +237,7 @@ def debug(index, arg=None):
     It's awfull but python doesn't have switch-case :(
     """
 
-    global OUTPUT
+    global OUTPUT, FORMAT
 
     if main.DEBUG_MESSAGE:
 
@@ -244,6 +270,9 @@ def debug(index, arg=None):
 
         elif index=="mode_recap":
             print("[nmea2kml] Mode selected :",arg)
+
+        elif index=="format_recap":
+            print("[nmea2kml] Format selected :",arg)
 
         elif index=="file_exist":
             print("[nmea2kml] Error : file with name %s already exist" % arg)
@@ -287,3 +316,21 @@ def debug(index, arg=None):
 
         elif index=="KeyboardInterrupt":
             print("[nmea2kml] Keyboard interrupt detected, aborting")
+        
+        elif index=="bad_format":
+            print("[nmea2kml] Frames format %s not found, exiting" % arg)
+
+        elif index=="no_format":
+            print("[nmea2kml] Error : please select 'GGA' or 'APP' format")
+
+        elif index=="choose_format":
+            print("[nmea2kml Please select a format : [1] GGA | [2] APP")
+            choosing = True
+            while choosing:
+                choice = input("    Choose 1 or 2 : ")
+                if choice == "1":
+                    FORMAT = "GGA"
+                    choosing = False
+                elif choice == "2":
+                    FORMAT = "APP"
+                    choosing = False

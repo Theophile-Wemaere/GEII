@@ -2,6 +2,10 @@
 
 #http://www.cedricaoun.net/eie/trames%20NMEA183.pdf <- frames informations (FR)
 
+#frame description for GPS logger application:
+#type,date time,latitude,longitude,accuracy(m),altitude(m),geoid_height(m),speed(m/s),bearing(deg),sat_used,sat_inview,name,desc
+
+
 #https://ivanrublev.me/kml/                         <- KML viewer (very easy and fast to use)
 
 #https://open.spotify.com/track/3ACa8DImXMFWsa44oEUKr1?si=22068d28e6fe4de8   <- (very good)
@@ -18,30 +22,32 @@
 # For now only work with GGA frames for coordinates and VTG frames for speed
 #
 # *NEW* Now with a brand new (beautiful) GUI
+# *NEW* New format conversion for the GPS logger app on Google Store
 #
-# **coming soon** (before april 10th): _different frames conversion to use with the GPS logger app 
-#                                      _containment max radius calculation (even if it's a little bit late)
+# **coming soon** (before april 10th): containment max radius calculation (even if it's a little bit late)
 
 import functions as func
 import GUI
 import tkinter as tk
 from os.path import exists
 import sys
+import converter
 
 USE_GUI = True        #if you want to use the GUI, set to 'True', if you don't want, set to 'False' 
 DEBUG_MESSAGE = True  #if you want to see debugs meesage, set to 'True', if you don't want, set to 'False'
-OVERWRITE = False     #set to 'True' if you want to overwrite the output file. 'False' will trigger a warning when creating the output file and allow to choose antoher name
+OVERWRITE = True      #set to 'True' if you want to overwrite the output file. 'False' will trigger a warning when creating the output file and allow to choose antoher name
 
 INPUT_FILE = "/tmp/data.txt"     #set the input file to convert (no necessary if using the GUI), set the FULL path (ex : /home/user/data.txt or C:\\Users\\data.txt)
 OUTPUT = "output.kml"            #default output file name, can be found in the output/ directory 
 MODE = "colored"                 #choose if the path is colored (speed indication) with "colored" or if the path is only one color "one color"
 COLOR = "ff00ffff"               #ABGR hex code for 'one color' mode ex : red = ff0000ff
 NAME = "My path"                 #the name of the path in the kml file
+FORMAT = "GGA"                   #the frames format to convert. Choose 'GGA' for GGA+VTG frames and 'APP' for the GPS logger app format
 
 
 def init():
 
-    global INPUT_FILE, OUTPUT, MODE, COLOR
+    global INPUT_FILE, OUTPUT, MODE, COLOR, FORMAT
 
     ###################################starting the GUI if requested
 
@@ -50,27 +56,32 @@ def init():
         func.debug("start_gui")
         root = tk.Tk()
         app = GUI.nmea_gui(root)
-        choosing = False
+        choosing = True
 
-        while not choosing:
+        while choosing:
             
             if len(app.color_entry.get())==6:
                 try:
-                    app.button_color["bg"] = "#" + app.color_entry.get()
+                    app.button_color["bg"] = "#" + app.color_entry.get()[::-1]
                 except:
                     pass
+
+            if app.var_gga.get() == 1 and app.var_app.get() == 1: #warning label for both format selected
+                app.label_warning.place(x=80,y=350,width=300,height=30)
+            else:
+                app.label_warning.place_forget()
 
             #print(app.var_end.get())
             app.page.update()
 
             if app.var_end.get() == 1:
                 
-                choosing = True
+                choosing = False
                 INPUT_FILE = app.file.get()
 
                 if INPUT_FILE=="":                      #if no input 
                     func.debug("none_input")
-                    choosing = False
+                    choosing = True
                     app.var_end.set(0)
 
                 if app.var_name.get() == 1:    
@@ -92,6 +103,20 @@ def init():
                         COLOR="ff"+COLOR
                 else:
                     MODE = "colored"
+
+                if app.var_gga.get() == 1:
+                    FORMAT = "GGA"
+                elif app.var_app.get() == 1:
+                    FORMAT = "APP"
+                elif app.var_gga.get() == 1 and app.var_app.get() == 1:
+                    app.label_warning.place(x=80,y=350,width=300,height=30)
+                    app.var_end.set(0)
+                    choosing = True
+                else :
+                    func.debug("no_format")
+                    app.var_end.set(0)
+                    choosing = True
+
 
     ###################################checking if input file exist
 
@@ -123,16 +148,28 @@ def init():
         func.debug("error_creating_file",OUTPUT)
         sys.exit(1)
 
+    ###################################checking if the format is correct
+
+    if FORMAT != "GGA" and FORMAT !="APP":
+        func.debug("bad_format")
+        if FORMAT == None:
+            func.debug("no_format")
+            func.debug("choose_format")
+            FORMAT = func.FORMAT
+            
+
     #recap message before starting the conversion
 
     func.debug("input_recap",INPUT_FILE)
     func.debug("output_recap",OUTPUT)
     func.debug("mode_recap",MODE)
+    func.debug("format_recap",FORMAT)
 
 
 def main():
 
-
+    #max range in Km/h before switching color
+    N = 0.5   
 
     ###################################opening the output file
 
@@ -141,18 +178,6 @@ def main():
     except:
         func.debug("error_open_out_file")
         sys.exit(1)
-
-    ###################################declaration of variables
-
-    count,previousSpeed = 0,0
-
-    #max range in Km/h before switching color
-    N = 0.5                 
-
-    begin = True
-
-    previousCoordinates=""
-    placemark="",
 
     ###################################opening input file
 
@@ -171,65 +196,24 @@ def main():
     ###################################conversion with colored path and speed indication
     if MODE == "colored" :
 
-        func.getMaxSpeed(INPUT_FILE)
-
-        for line in file:   
-            line_type = line[:6] 
-            if line_type=="$GPGGA":                 #check if the current line is a GGA frame
-                data=line                           #if it's a GGA frame, store it in data
-
-            elif line_type=="$GPVTG":
-                speed=line                          #if it's not, it's a speed frame
-                speed=func.getSpeed(speed)          #we get the speed value
-
-                if speed != -1:                     #if the checksum if good, we can process the speed value and convert it to a colored path
-
-                    if begin:                                                                                       #if it's the first frame, we create the first placermak
-                        begin = False       
-                        previousSpeed=speed                                                                         
-                        previousCoordinates, placemark = func.new_color_placemark(data,speed,previousCoordinates)   #the function create the placemark with the right color from the speed value
-
-                    elif (speed < previousSpeed + N) and (speed > previousSpeed - N):    #else if the speed is not is the range +/- N km, we add the coordinates to the current placemark
-                        previousSpeed=speed
-                        coordinates=func.getCoordinates(data)
-                        if coordinates != -1 and coordinates != -2:                      #if the coordinates checksum and alt are good, we add them to the placemark
-                            placemark+=coordinates
-                            previousCoordinates=coordinates                              #we new to add the lasts coordinates when starting a new palcemark to avoid hole in the final path
-                        else:
-                            pass
-
-                    else:
-                        endPlacemark=func.endPlacemark(placemark,outfile)                            #if the speed difference is to high (bigger or smaller than N km), we end the placemark
-                        if endPlacemark == -1 :
-                            func.debug("error_writing",OUTPUT)
-                            sys.exit(1)
-                        previousSpeed=speed
-                        previousCoordinates, placemark = func.new_color_placemark(data,speed,previousCoordinates) #we create a new placemark
-                else:
-                    func.debug("bad_chksum_speed")
-
-            else:   #if it's not a GGA or VTG frame, this is an unknow data line
-                func.debug("unknow_line")
-
-            func.NUM_LINE+=1     #update the line counter (for the debug function)
+        if FORMAT == "GGA":
+            converter.GGA_colored(file,outfile,INPUT_FILE,OUTPUT,N,FORMAT)
+        elif FORMAT == "APP":
+            converter.APP_colored(file,outfile,INPUT_FILE,OUTPUT,N,FORMAT)
+        else:
+            func.debug("bad_format",FORMAT)
 
     ###################################conversion with only one color
     elif MODE == "one color":
         
-        func.debug("placemark_color",COLOR)
-        placemark = func.createPlacemark(COLOR,"")          #we create the placemark (only one) wit the requested color
-
-        for line in file:                                   
-            if line[:6] == "$GPGGA":                        #we only use GGA frames for this path
-                coordinates = func.getCoordinates(line)
-                if coordinates != -1 and coordinates != -2:
-                    placemark += coordinates
+        if FORMAT == "GGA":
+            converter.GGA_oneColor(file,outfile,OUTPUT,COLOR,FORMAT)
+        elif FORMAT == "APP":
+            converter.APP_oneColor(file,outfile,OUTPUT,COLOR,FORMAT)
+        else:
+            func.debug("bad_format")
             
-        endPlacemark = func.endPlacemark(placemark,outfile)
-        if endPlacemark == -1:
-            func.debug("error_writing",OUTPUT)
-            sys.exit(1)
-
+    ###################################error : unknow format        
     else:
         func.debug("bad_mode",MODE)
         sys.exit(1)

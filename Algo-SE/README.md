@@ -23,7 +23,7 @@ Also have altitudes informations, so you can display it in google earth:
 
 I was bored so there is also a *beautiful* interface with tkinter to select your file and other options :
 
-![gui](./data/img4.png)
+![gui](./data/gui.png)
 
 ### How to use it :
 
